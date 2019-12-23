@@ -1,0 +1,198 @@
+server:
+  port: 8081
+  servlet:
+    context-path: /
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/xml,text/plain
+  error:
+    include-message: always
+    include-binding-errors: always
+
+spring:
+  application:
+    name: loan-service
+
+  datasource:
+    url: jdbc:postgresql://localhost:5432/loan_db
+    username: loan_user
+    password: ${DB_PASSWORD:admin123}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      pool-name: LoanServiceHikariPool
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQL10Dialect
+        format_sql: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+        generate_statistics: false
+        temp:
+          use_jdbc_metadata_defaults: false
+    open-in-view: false
+
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    timeout: 2000
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+        max-wait: -1ms
+
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:guest}
+    password: ${RABBITMQ_PASSWORD:guest}
+    virtual-host: /
+    listener:
+      simple:
+        concurrency: 3
+        max-concurrency: 10
+        prefetch: 1
+        default-requeue-rejected: false
+
+  cache:
+    type: redis
+    redis:
+      time-to-live: 3600000
+      cache-null-values: false
+
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+      indent-output: true
+    deserialization:
+      fail-on-unknown-properties: false
+    default-property-inclusion: non_null
+
+# Swagger/OpenAPI Configuration
+springdoc:
+  api-docs:
+    path: /api-docs
+    enabled: true
+  swagger-ui:
+    path: /swagger-ui.html
+    enabled: true
+    operations-sorter: method
+    tags-sorter: alpha
+  show-actuator: true
+
+# Actuator Configuration
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus,loggers
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: always
+      show-components: always
+    metrics:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    tags:
+      application: ${spring.application.name}
+  health:
+    redis:
+      enabled: true
+    db:
+      enabled: true
+
+# Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.creditunion.loan: DEBUG
+    org.springframework.web: INFO
+    org.springframework.security: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/loan-service.log
+    max-size: 10MB
+    max-history: 30
+
+# Custom Application Configuration
+loan:
+  underwriting:
+    min-credit-score: 650
+    max-debt-to-income-ratio: 0.43
+    min-employment-months: 24
+    auto-approval-threshold: 750
+
+  interest-rates:
+    personal-loan:
+      excellent: 5.99 # Credit score 750+
+      good: 8.99 # Credit score 700-749
+      fair: 12.99 # Credit score 650-699
+    auto-loan:
+      excellent: 3.99
+      good: 6.99
+      fair: 9.99
+    mortgage:
+      excellent: 3.25
+      good: 4.25
+      fair: 5.50
+
+  limits:
+    max-active-loans-per-customer: 5
+    min-loan-amount: 1000
+    max-loan-amount:
+      personal: 50000
+      auto: 100000
+      mortgage: 1000000
+
+  payment:
+    grace-period-days: 10
+    delinquent-threshold-days: 30
+    default-threshold-days: 90
+    late-fee-percentage: 5.0
+
+  notifications:
+    payment-reminder-days: 7
+    delinquency-warning-days: 15
+
+# Feature Toggles
+features:
+  auto-approval-enabled: true
+  fraud-check-enabled: true
+  credit-bureau-integration-enabled: true
+  sms-notifications-enabled: true
+  email-notifications-enabled: true
+
+# External Service URLs
+external-services:
+  customer-service:
+    url: ${CUSTOMER_SERVICE_URL:http://localhost:8082}
+    timeout: 5000
+  payment-service:
+    url: ${PAYMENT_SERVICE_URL:http://localhost:8083}
+    timeout: 5000
+  credit-bureau-service:
+    url: ${CREDIT_BUREAU_URL:https://api.creditbureau.com}
+    timeout: 10000
+    api-key: ${CREDIT_BUREAU_API_KEY}
